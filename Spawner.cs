@@ -1,415 +1,99 @@
+// Include the necessary headers
+#include <iostream>
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include<string>
 
-using System;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-using UnityEditor.PackageManager;
-using UnityEngine;
+#pragma comment(lib, "ws2_32.lib")
 
-
-public class Spawner : MonoBehaviour
+int main()
 {
+    // Initialize Winsock
 
+    //Structure to hold info about WinSocket
+    WSADATA wsData;
 
-    /*  private Socket _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-      private byte[] _recieveBuffer = new byte[8142];
+    //Initialize 0x0202 by using makeword(2,2)
+    //Send a pointer to wsData's memory location
+    //WSAStartup initializes the library with the version and the info about Winsocket^^
+    //The WSAStartup function initiates use of the Winsock DLL by a process.
 
-      private void SetupServer()
-      {
-          try
-          {
-              _clientSocket.Connect(new IPEndPoint(IPAddress.Loopback, 39000));
-          }
-          catch (SocketException ex)
-          {
-              Debug.Log(ex.Message);
-          }
-
-          _clientSocket.BeginReceive(_recieveBuffer, 0, _recieveBuffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
-
-      }
-
-      private void ReceiveCallback(IAsyncResult AR)
-      {
-          //Check how much bytes are recieved and call EndRecieve to finalize handshake
-          int recieved = _clientSocket.EndReceive(AR);
-
-          if (recieved <= 0)
-              return;
-
-          Debug.Log("Recieved data!" + recieved);
-
-          //Copy the recieved data into new buffer , to avoid null bytes
-          byte[] recData = new byte[recieved];
-          Buffer.BlockCopy(_recieveBuffer, 0, recData, 0, recieved);
-
-          //Process data here the way you want , all your bytes will be stored in recData
-
-          //Start receiving again
-          _clientSocket.BeginReceive(_recieveBuffer, 0, _recieveBuffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
-      }*/
-    /*    private const int bufferSize = 1024;
-        private const int port = 38000;
-
-        private Socket listener;
-        private byte[] buffer = new byte[bufferSize];
-
-        public GameObject[] GameObjectPrefab;
-        Socket client;
-        private void Start()
-        {
-            // Start listening for data
-            client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            client.Connect("localhost", 1234); // Change the IP address and port number as needed
-            Debug.Log("Client connected");
-            byte[] buffer = new byte[1024];
-            client.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(OnReceive),null);
-            Debug.Log("Recieved from ");
-        }
-
-        private void ReceiveData()
-        {
-            try
-            {
-                int bytesRead = client.Receive(buffer);
-                Debug.Log("Received data length: " + bytesRead);
-
-                if (bytesRead > 0)
-                {
-                    string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                    Debug.Log("Received data: " + data);
-
-                    if (int.TryParse(data, out int numObjects))
-                    {
-                        Debug.Log("Parsed number of objects: " + numObjects);
-
-                        // Spawn the desired number of objects in Unity
-                        for (int i = 0; i < numObjects; i++)
-                        {
-                            Vector3 randomSpawnLocation = new Vector3(1, 5, 1);
-                            Instantiate(GameObjectPrefab[0], randomSpawnLocation, Quaternion.identity);
-                        }
-                    }
-                    else
-                    {
-                        Debug.Log("Failed to parse received data as integer");
-                    }
-                }
-
-                // Continue receiving data
-                ReceiveData();
-            }
-            catch (SocketException ex)
-            {
-                Debug.LogError("SocketException: " + ex.Message);
-                client.Close();
-            }
-        }
-
-
-
-        private void OnReceive(IAsyncResult ar)
-        {
-            Debug.Log("Beginning to recieve data");
-
-
-
-
-            int bytesRead = client.EndReceive(ar);
-            Debug.Log("Reading data");
-            Debug.Log(bytesRead);
-
-            if (bytesRead > 0)
-            {
-                string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                int numObjects = int.Parse(data);
-
-                Debug.Log("Received number of objects: " + numObjects);
-
-                // Spawn the desired number of objects in Unity
-                for (int i = 0; i < numObjects; i++)
-                {
-                    Vector3 randomSpawnLocation = new Vector3(1, 5, 1);
-                    Instantiate(GameObjectPrefab[0], randomSpawnLocation, Quaternion.identity);
-                }
-            }
-            else
-            {
-                // Connection closed
-                client.Close();
-            }
-        }
-
-
-        public void Update()
-        {
-            client.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, OnReceive, new object[] { client, buffer });
-        }
-
-
-    */
-    Socket SeverSocket = null;
-    Thread Socket_Thread = null;
-    bool Socket_Thread_Flag = false;
-
-    //for received message
-    //    private float mouse_delta_x;
-    //    private float mouse_delta_y;
-    //    private bool isTapped;
-    //    private bool isDoubleTapped;
-    //
-    //    public float getMouseDeltaX(){return mouse_delta_x;    }
-    //    public float getMouseDeltaY(){return mouse_delta_y;    }
-    //    public bool getTapped(){return isTapped;}
-    //    public bool getDoubleTapped(){return isDoubleTapped;}
-    //
-    //    public void setMouseDeltaX(float dx){mouse_delta_x = dx;}
-    //    public void setMouseDeltaY(float dy){mouse_delta_y = dy;}
-    //    public void setTapped(bool t){isTapped = t;}
-    //    public void setDoubleTapped(bool t){isDoubleTapped = t;}
-    //
-    //    private int tick =0;
-    //private string[] receivedMSG;
-    //public string[] getMsg(){return receivedMSG;    }
-
-
-    string[] stringSeparators = new string[] { "*TOUCHEND*", "*MOUSEDELTA*", "*Tapped*", "*DoubleTapped*" };
-
-    void Awake()
+    if (WSAStartup(MAKEWORD(2, 2), &wsData) != 0)
     {
-        Socket_Thread = new Thread(Dowrk);
-        Socket_Thread_Flag = true;
-        Socket_Thread.Start();
+        std::cerr << "Failed to initialize Winsock" << std::endl;
+        return 1;
     }
 
-    private void Dowrk()
+    // Create a socket with  s = socket(domain, type, protocol);
+    //AF_INET stands for IPV4, indicates IPV4 domain
+    //SOCK_STREAM provides sequenced, two-way byte streams with a transmission mechanism for stream data , TCP
+    //protocol is unspecified (a value of 0) so the system selects a protocol that supports the requested socket type
+    SOCKET clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (clientSocket == INVALID_SOCKET)
     {
-        //receivedMSG = new string[10];
-        SeverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 9999);
-        SeverSocket.Bind(ipep);
-        SeverSocket.Listen(10);
-
-        Debug.Log("Socket Standby....");
-        Socket client = SeverSocket.Accept();//client?? ??? ???? ?????.
-        Debug.Log("Socket Connected.");
-
-        IPEndPoint clientep = (IPEndPoint)client.RemoteEndPoint;
-        NetworkStream recvStm = new NetworkStream(client);
-        //tick = 0;
-
-        while (Socket_Thread_Flag)
-        {
-            byte[] receiveBuffer = new byte[1024 * 80];
-            try
-            {
-
-                //print (recvStm.Read(receiveBuffer, 0, receiveBuffer.Length));
-                if (recvStm.Read(receiveBuffer, 0, receiveBuffer.Length) == 0)
-                {
-                    // when disconnected , wait for new connection.
-                    client.Close();
-                    SeverSocket.Close();
-
-                    SeverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    ipep = new IPEndPoint(IPAddress.Any, 10000);
-                    SeverSocket.Bind(ipep);
-                    SeverSocket.Listen(10);
-                    Debug.Log("Socket Standby....");
-                    client = SeverSocket.Accept();//client?? ??? ???? ?????.
-                    Debug.Log("Socket Connected.");
-
-                    clientep = (IPEndPoint)client.RemoteEndPoint;
-                    recvStm = new NetworkStream(client);
-
-                }
-                else
-                {
-
-
-                    string Test = Encoding.Default.GetString(receiveBuffer);
-                    //string Test = Convert.ToBase64String(receiveBuffer);
-                    //Test = Test.Normalize();
-
-
-                    print(Test);
-                    //string[] splitMsg = Test.Split(stringSeparators,System.StringSplitOptions.RemoveEmptyEntries);
-                    // parsing gogo
-
-                    //                    string[] splitMsg = Test.Split('*');
-                    ////                    print (splitMsg);
-                    //                    if(splitMsg.Length>1)
-                    //                    {
-                    //                        if(splitMsg[1].CompareTo("Tapped")==0){
-                    //                            print ("tap");
-                    //                            isTapped = true;
-                    //                        }else if(splitMsg[1].CompareTo("DoubleTapped")==0){
-                    //                            print ("double tap");
-                    //                            isDoubleTapped = true;
-                    //                        }else if(splitMsg[1].CompareTo("MOUSEDELTA")==0){
-                    //                            print ("move");
-                    //                            //string[] lastMsg = splitMsg[splitMsg.Length-1].Split('*');
-                    //                            mouse_delta_x = (float)Convert.ToDouble(splitMsg[2]);
-                    //                            mouse_delta_y = (float)Convert.ToDouble(splitMsg[3]);
-                    //                        }else{
-                    //                            print ("F*** :"+splitMsg[1].Length);
-                    //                          
-                    //                        }
-                    //                    }
-                    //
-                    //                    string singletap = "one";
-                    //                    string doubletap = "two";
-                    //                    if(splitMsg.Length>0){
-                    //
-                    //
-
-                    //                          
-                    //                        if(lastMsg.Length>1){
-                    //                      
-
-                    //
-                    //                        }else{
-                    //
-                    //                            print ("split msg : "+splitMsg[0]);
-                    //                            int tmp = (int)Convert.ToInt32(splitMsg[0]);
-                    //                            if(tmp ==1){
-                    //
-                    //                                print ("Tapped!~");
-                    //                          
-                    //                                isTapped = true;
-                    //
-                    //                            }else if(tmp ==2){
-                    //
-                    //                                print ("Double Tapped!~");
-                    //                          
-                    //                                isDoubleTapped = true;
-                    //                          
-                    //                            }else{              
-                    //
-                    //                            }
-                    //                        }
-                    //                    }else{
-                    //
-                    //                    }
-
-                    //print (receivedMSG);
-
-                }
-
-
-            }
-
-            catch (Exception e)
-            {
-                Socket_Thread_Flag = false;
-                client.Close();
-                Debug.Log(e);
-                SeverSocket.Close();
-                continue;
-            }
-
-        }
-
+        std::cerr << "Failed to create socket" << std::endl;
+        WSACleanup();
+        return 1;
     }
 
-    void OnApplicationQuit()
-    {
-        try
-        {
-            Socket_Thread_Flag = false;
-            Socket_Thread.Abort();
-            SeverSocket.Close();
-            Debug.Log("Bye~~");
-        }
+    // Set up the server address
+    // htons(38000) converts the decimal value 38000 to its equivalent in network byte order
+    sockaddr_in serverAddress{};
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(9999); // Use the same port number as in the Unity side
 
-        catch
-        {
-            Debug.Log("Error when finished...");
-        }
+    // inet_pton is used convert the IP address string to binary format
+    if (inet_pton(AF_INET, "127.0.0.1", &(serverAddress.sin_addr)) != 1)
+    {
+        std::cerr << "Failed to convert IP address" << std::endl;
+        closesocket(clientSocket);
+        WSACleanup();
+        return 1;
     }
 
-    /*    private WebSocket wsServer;
+    // Connect to the server
+    //attempt to establish a connection to the server using the created socket and the server address
+    if (connect(clientSocket, (sockaddr*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
+    {
+        std::cerr << "Failed to connect to the server" << std::endl;
+        closesocket(clientSocket);
+        WSACleanup();
+        return 1;
+    }
 
-        private void Start()
+
+
+    // Send number of objects to be spawn to the server until 'Q' is entered
+    std::string input;
+    while (true)
+    {
+        std::cout << "Enter a number (or 'Q' to quit): ";
+        std::cin >> input;
+
+        if (input == "Q" || input == "q")
         {
-            // Create and start the WebSocket server
-            wsServer = new WebSocket(IPAddress.Any, 8080);
-            wsServer.Start();
-
-            // Hook up the event for when a message is received
-            wsServer.OnMessage += OnMessageReceived;
+            std::cout << "Well that's all folks! Thanks, BYEEE!!!!!";
+            break;
         }
 
-        private void OnMessageReceived(object sender, MessageEventArgs e)
-        {
-            // Handle the received message
-            string message = e.Data;
-            Debug.Log("Received message: " + message);
+        int numObjects = std::stoi(input);
+        std::string data = std::to_string(numObjects);
 
-            // Implement your logic to spawn objects or perform actions based on the message
-            // ...
+        if (send(clientSocket, data.c_str(), data.size(), 0) == SOCKET_ERROR)
+        {
+            std::cerr << "Failed to send data" << std::endl;
+            closesocket(clientSocket);
+            WSACleanup();
+            return 1;
         }
 
-        private void OnDestroy()
-        {
-            // Stop the WebSocket server when the script is destroyed
-            if (wsServer != null && wsServer.IsListening)
-                wsServer.Stop();
-        }*/
+        std::cout << "Sent data: " << numObjects << ", " << data.size() << std::endl;
+    }
+
+    // Close the socket and clean up Winsock
+    closesocket(clientSocket);
+    WSACleanup();
+
+    return 0;
 }
-
-
-
-
-
-
-/*
-public class WebSocketServer : MonoBehaviour
-{
-    private WebSocket websocket;
-
-    private void Start()
-    {
-        string serverUrl = "ws://localhost:34999"; // Change to the appropriate server URL
-
-        websocket = new WebSocket(serverUrl);
-        websocket.Opened += OnWebSocketOpened;
-        websocket.Error += OnWebSocketError;
-        websocket.Closed += OnWebSocketClosed;
-        websocket.MessageReceived += OnWebSocketMessageReceived;
-
-        websocket.Open();
-    }
-
-    private void OnWebSocketOpened(object sender, EventArgs e)
-    {
-        Debug.Log("WebSocket connection opened");
-    }
-
-    private void OnWebSocketError(object sender, ErrorEventArgs e)
-    {
-        Debug.LogError("WebSocket error: " + e.Exception.Message);
-    }
-
-    private void OnWebSocketClosed(object sender, EventArgs e)
-    {
-        Debug.Log("WebSocket connection closed");
-    }
-
-    private void OnWebSocketMessageReceived(object sender, MessageReceivedEventArgs e)
-    {
-        // Handle the received message
-        string message = e.Message;
-        Debug.Log("Received message: " + message);
-
-        // Implement your logic to spawn objects or perform actions based on the message
-        // ...
-    }
-
-    private void OnDestroy()
-    {
-        if (websocket != null && websocket.State == WebSocketState.Open)
-            websocket.Close();
-    }}*/
 
